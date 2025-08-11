@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>双色球模拟器 · 纯HTML</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;--panel:#fff;--text:#111;--muted:#6b7280;--primary:#4f46e5;--ok:#059669;--red:#dc2626;--blue:#2563eb;
+      --br:16px;--br-sm:12px;--shadow:0 8px 20px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#f8fafc,#eef2ff);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    .wrap{max-width:1120px;margin:0 auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+    h1{font-size:24px;margin:0}
+    .muted{color:var(--muted);font-size:12px}
+    .btn{appearance:none;border:0;border-radius:12px;background:#e5e7eb;color:#111;padding:10px 14px;cursor:pointer;font-size:14px}
+    .btn.primary{background:var(--primary);color:#fff}
+    .btn.ok{background:var(--ok);color:#fff}
+    .btn.red{background:var(--red);color:#fff}
+    .btn:active{transform:scale(.98)}
+    .panel{background:var(--panel);border-radius:var(--br);box-shadow:var(--shadow);padding:16px;margin-top:16px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+    .grid{display:grid;gap:12px}
+    @media (min-width: 900px){.grid-2{grid-template-columns:1fr 1fr}}
+    .balls{display:grid;gap:8px;grid-template-columns:repeat(11,minmax(0,1fr))}
+    .balls.blue{grid-template-columns:repeat(8,minmax(0,1fr))}
+    .ball{width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;cursor:pointer;user-select:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 6px rgba(0,0,0,.06)}
+    .ball.red{background:#fee2e2;color:#b91c1c}
+    .ball.red.active{background:var(--red);color:#fff}
+    .ball.blue{background:#dbeafe;color:#1d4ed8}
+    .ball.blue.active{background:var(--blue);color:#fff}
+    .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:999px;font-weight:700;color:#fff}
+    .pill.red{background:var(--red)}
+    .pill.blue{background:var(--blue)}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:8px 10px;text-align:left}
+    thead th{color:var(--muted);font-weight:600}
+    tbody tr{border-top:1px solid #e5e7eb}
+    input[type="number"]{width:96px;padding:8px 10px;border-radius:10px;border:1px solid #e5e7eb;font-size:14px}
+    .note{font-size:13px;color:#374151}
+    footer{padding:24px 0 40px;text-align:center;color:#6b7280;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>双色球模拟器</h1>
+        <div class="muted">红球 1-33 选6；蓝球 1-16 选1 · 纯前端本地运行</div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="btnQuick">机选一注</button>
+        <button class="btn" id="btnClear">清空</button>
+        <button class="btn ok" id="btnDraw">开奖</button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="section-title">
+        <div><strong>选择号码</strong></div>
+        <div class="muted" id="selStatus">已选红球 0/6 · 蓝球 0/1</div>
+      </div>
+      <div class="grid grid-2">
+        <div>
+          <div class="section-title">
+            <div class="note">红球（选6个）</div>
+            <div class="row">
+              <button class="btn red" id="btnRedRand">随机6个</button>
+              <button class="btn" id="btnRedClear">清空</button>
+            </div>
+          </div>
+          <div class="balls" id="redArea"></div>
+        </div>
+        <div>
+          <div class="section-title">
+            <div class="note">蓝球（选1个）</div>
+            <div class="row">
+              <button class="btn" style="background:#1d4ed8;color:#fff" id="btnBlueRand">随机1个</button>
+              <button class="btn" id="btnBlueClear">清空</button>
+            </div>
+          </div>
+          <div class="balls blue" id="blueArea"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div><strong>开奖与结果</strong></div>
+        <div class="row"><button class="btn ok" id="btnDraw2">立即开奖</button></div>
+      </div>
+      <div class="grid" style="grid-template-columns:2fr 1fr;gap:20px">
+        <div>
+          <div class="muted" style="margin-bottom:6px">本期开奖号码</div>
+          <div class="row" id="winRow"><span class="muted">尚未开奖</span></div>
+          <div class="muted" style="margin:12px 0 6px">我的投注</div>
+          <div class="row" id="myRow"><span class="muted">请选择 6 红 + 1 蓝</span></div>
+        </div>
+        <div>
+          <div class="panel" style="padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px">
+            <div style="font-weight:600;margin-bottom:6px">判定</div>
+            <div id="judge" class="muted">开奖后将显示命中与奖级</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="section-title">
+          <div class="note">历史记录（最近50次）</div>
+          <button class="btn" id="btnHistClear">清空记录</button>
+        </div>
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>开奖号码</th>
+                <th>我的投注</th>
+                <th>命中</th>
+                <th>奖级</th>
+              </tr>
+            </thead>
+            <tbody id="histBody"><tr><td colspan="5" class="muted">暂无</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div><strong>大数模拟与冷热统计</strong></div>
+        <div class="row">
+          <input type="number" id="simTimes" min="1" value="1000" />
+          <span class="muted">次</span>
+          <button class="btn primary" id="btnSim">开始模拟</button>
+          <button class="btn" id="btnStatReset">清零</button>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div>
+          <div class="muted" style="margin-bottom:6px">红球出现次数（越高越热）</div>
+          <div class="balls" id="statRed"></div>
+        </div>
+        <div>
+          <div class="muted" style="margin-bottom:6px">蓝球出现次数</div>
+          <div class="balls blue" id="statBlue"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title"><div><strong>玩法说明</strong></div></div>
+      <ul class="note" style="margin:0 0 0 18px;line-height:1.7">
+        <li>本工具仅用于学习与概率模拟，不构成任何投注建议。</li>
+        <li>号码规则：红球从 1-33 选 6 个不重复数字；蓝球从 1-16 选 1 个。</li>
+        <li>奖级判定：1等 6+1；2等 6+0；3等 5+1；4等 5+0 或 4+1；5等 4+0 或 3+1；6等 2+1 / 1+1 / 0+1。</li>
+        <li>“大数模拟”随机生成开奖号码并累计出现次数，用于观察冷热分布（仅随机实验）。</li>
+      </ul>
+    </section>
+
+    <footer>© <span id="year"></span> 双色球模拟器 · 理性娱乐</footer>
+  </div>
+
+<script>
+(function(){
+  const pad = n => String(n).padStart(2,'0');
+  const range = (n, s=1) => Array.from({length:n},(_,i)=>i+s);
+  function sampleUnique(arr, k){
+    const a=[...arr], res=[]; while(res.length<k&&a.length){
+      const i=Math.floor(Math.random()*a.length); res.push(a[i]); a.splice(i,1);
+    } return res.sort((x,y)=>x-y);
+  }
+  function drawOne(){
+    return { red: sampleUnique(range(33),6), blue: sampleUnique(range(16),1)[0] };
+  }
+  function compareTicket(win, t){
+    const redHit = t.red.filter(n=>win.red.includes(n)).length;
+    const blueHit = (win.blue===t.blue)?1:0; return {redHit, blueHit};
+  }
+  function prizeLevel(hit){
+    const {redHit, blueHit} = hit;
+    if(redHit===6&&blueHit===1) return '一等奖';
+    if(redHit===6&&blueHit===0) return '二等奖';
+    if(redHit===5&&blueHit===1) return '三等奖';
+    if((redHit===5&&blueHit===0)||(redHit===4&&blueHit===1)) return '四等奖';
+    if((redHit===4&&blueHit===0)||(redHit===3&&blueHit===1)) return '五等奖';
+    if((redHit===2&&blueHit===1)||(redHit===1&&blueHit===1)||(redHit===0&&blueHit===1)) return '六等奖';
+    return null;
+  }
+
+  const els = {
+    selStatus: document.getElementById('selStatus'),
+    redArea: document.getElementById('redArea'),
+    blueArea: document.getElementById('blueArea'),
+    btnQuick: document.getElementById('btnQuick'),
+    btnClear: document.getElementById('btnClear'),
+    btnDraw: document.getElementById('btnDraw'),
+    btnDraw2: document.getElementById('btnDraw2'),
+    btnRedRand: document.getElementById('btnRedRand'),
+    btnRedClear: document.getElementById('btnRedClear'),
+    btnBlueRand: document.getElementById('btnBlueRand'),
+    btnBlueClear: document.getElementById('btnBlueClear'),
+    winRow: document.getElementById('winRow'),
+    myRow: document.getElementById('myRow'),
+    judge: document.getElementById('judge'),
+    histBody: document.getElementById('histBody'),
+    btnHistClear: document.getElementById('btnHistClear'),
+    simTimes: document.getElementById('simTimes'),
+    btnSim: document.getElementById('btnSim'),
+    btnStatReset: document.getElementById('btnStatReset'),
+    statRed: document.getElementById('statRed'),
+    statBlue: document.getElementById('statBlue'),
+  };
+
+  let redSel = []; let blueSel = null; let win = null; const history=[]; const stats={ red:Array(33).fill(0), blue:Array(16).fill(0) };
+
+  function refreshSelStatus(){
+    els.selStatus.textContent = `已选红球 ${redSel.length}/6 · 蓝球 ${blueSel?1:0}/1`;
+    // render my choice
+    els.myRow.innerHTML = '';
+    if(redSel.length===6 && blueSel){
+      redSel.forEach(n=>{
+        const s=document.createElement('span'); s.className='pill red'; s.textContent=pad(n); els.myRow.appendChild(s);
+      });
+      const plus=document.createElement('span'); plus.textContent='+'; plus.style.color='#9ca3af'; plus.style.margin='0 6px'; els.myRow.appendChild(plus);
+      const b=document.createElement('span'); b.className='pill blue'; b.textContent=pad(blueSel); els.myRow.appendChild(b);
+    }else{
+      const m=document.createElement('span'); m.className='muted'; m.textContent='请选择 6 红 + 1 蓝'; els.myRow.appendChild(m);
+    }
+  }
+
+  function renderBalls(){
+    els.redArea.innerHTML=''; els.blueArea.innerHTML='';
+    range(33).forEach(n=>{
+      const bt=document.createElement('button'); bt.className='ball red'+(redSel.includes(n)?' active':''); bt.textContent=pad(n);
+      bt.onclick=()=>{ if(redSel.includes(n)){ redSel=redSel.filter(x=>x!==n); } else { if(redSel.length<6){ redSel=[...redSel,n].sort((a,b)=>a-b); } }
+        renderBalls(); refreshSelStatus(); };
+      els.redArea.appendChild(bt);
+    });
+    range(16).forEach(n=>{
+      const bt=document.createElement('button'); bt.className='ball blue'+(blueSel===n?' active':''); bt.textContent=pad(n);
+      bt.onclick=()=>{ blueSel = (blueSel===n? null : n); renderBalls(); refreshSelStatus(); };
+      els.blueArea.appendChild(bt);
+    });
+  }
+
+  function setWin(w){
+    win = w; els.winRow.innerHTML='';
+    if(!win){ els.winRow.innerHTML='<span class="muted">尚未开奖</span>'; return; }
+    win.red.forEach(n=>{const s=document.createElement('span'); s.className='pill red'; s.textContent=pad(n); els.winRow.appendChild(s);});
+    const plus=document.createElement('span'); plus.textContent='+'; plus.style.color='#9ca3af'; plus.style.margin='0 6px'; els.winRow.appendChild(plus);
+    const b=document.createElement('span'); b.className='pill blue'; b.textContent=pad(win.blue); els.winRow.appendChild(b);
+  }
+
+  function openDraw(){
+    const w = drawOne(); setWin(w);
+    if(redSel.length===6 && blueSel){
+      const ticket={ red:[...redSel], blue:blueSel };
+      const cmp=compareTicket(w,ticket); const level=prizeLevel(cmp);
+      addHistory({ time:new Date().toISOString(), win:w, ticket, result:{...cmp, level} });
+      renderJudge(ticket);
+    } else {
+      els.judge.textContent='未形成有效投注（请选择 6 红 + 1 蓝）';
+    }
+  }
+
+  function addHistory(item){
+    history.unshift(item); if(history.length>50) history.pop();
+    renderHistory();
+  }
+
+  function renderHistory(){
+    els.histBody.innerHTML='';
+    if(history.length===0){
+      const tr=document.createElement('tr'); const td=document.createElement('td'); td.colSpan=5; td.className='muted'; td.textContent='暂无'; tr.appendChild(td); els.histBody.appendChild(tr); return;
+    }
+    history.forEach(h=>{
+      const tr=document.createElement('tr');
+      const t1=document.createElement('td'); t1.textContent=new Date(h.time).toLocaleString(); tr.appendChild(t1);
+      const t2=document.createElement('td'); t2.innerHTML = `<span style="color:#dc2626;font-weight:600">${h.win.red.map(pad).join(' ')}</span> + <span style="color:#2563eb;font-weight:600">${pad(h.win.blue)}</span>`; tr.appendChild(t2);
+      const t3=document.createElement('td'); t3.innerHTML = `<span style="color:#dc2626">${h.ticket.red.map(pad).join(' ')}</span> + <span style="color:#2563eb">${pad(h.ticket.blue)}</span>`; tr.appendChild(t3);
+      const t4=document.createElement('td'); t4.textContent=`红${h.result.redHit} 蓝${h.result.blueHit}`; tr.appendChild(t4);
+      const t5=document.createElement('td'); t5.textContent=h.result.level || '未中'; tr.appendChild(t5);
+      els.histBody.appendChild(tr);
+    });
+  }
+
+  function renderJudge(ticket){
+    const cmp = compareTicket(win, ticket);
+    const level = prizeLevel(cmp);
+    els.judge.innerHTML = `红球命中：<strong>${cmp.redHit}</strong><br>蓝球命中：<strong>${cmp.blueHit}</strong><br>奖级：${ level ? '<strong style="color:#059669">'+level+'</strong>' : '<span class="muted">未中奖</span>' }`;
+  }
+
+  function quickPick(){
+    redSel = sampleUnique(range(33),6); blueSel = sampleUnique(range(16),1)[0]; renderBalls(); refreshSelStatus();
+  }
+  function clearPick(){ redSel=[]; blueSel=null; renderBalls(); refreshSelStatus(); }
+
+  function simulateMany(times){
+    for(let i=0;i<times;i++){
+      const w=drawOne(); w.red.forEach(n=>stats.red[n-1]+=1); stats.blue[w.blue-1]+=1;
+    }
+    renderStats();
+  }
+  function resetStats(){ stats.red.fill(0); stats.blue.fill(0); renderStats(); }
+
+  function statBubble(n, count, color){
+    const wrap=document.createElement('div'); wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.alignItems='center'; wrap.style.gap='6px';
+    const b=document.createElement('div'); b.className=`ball ${color}`; b.textContent=pad(n); b.style.cursor='default';
+    const c=document.createElement('div'); c.className='muted'; c.style.fontSize='12px'; c.textContent=count;
+    wrap.appendChild(b); wrap.appendChild(c); return wrap;
+  }
+  function renderStats(){
+    els.statRed.innerHTML=''; els.statBlue.innerHTML='';
+    range(33).forEach(n=> els.statRed.appendChild(statBubble(n, stats.red[n-1], 'red')));
+    range(16).forEach(n=> els.statBlue.appendChild(statBubble(n, stats.blue[n-1], 'blue')));
+  }
+
+  // events
+  els.btnQuick.onclick=quickPick; els.btnClear.onclick=clearPick; els.btnDraw.onclick=openDraw; els.btnDraw2.onclick=openDraw;
+  els.btnRedRand.onclick=()=>{ redSel = sampleUnique(range(33),6); renderBalls(); refreshSelStatus(); };
+  els.btnRedClear.onclick=()=>{ redSel=[]; renderBalls(); refreshSelStatus(); };
+  els.btnBlueRand.onclick=()=>{ blueSel = sampleUnique(range(16),1)[0]; renderBalls(); refreshSelStatus(); };
+  els.btnBlueClear.onclick=()=>{ blueSel=null; renderBalls(); refreshSelStatus(); };
+  els.btnHistClear.onclick=()=>{ history.length=0; renderHistory(); };
+  els.btnSim.onclick=()=>{ const v=parseInt(els.simTimes.value||'0',10); if(v>0) simulateMany(v); };
+  els.btnStatReset.onclick=resetStats;
+
+  // init
+  document.getElementById('year').textContent = new Date().getFullYear();
+  renderBalls(); refreshSelStatus(); renderHistory(); renderStats();
+})();
+</script>
+</body>
+</html>
